@@ -9,17 +9,29 @@
 (defvar alt-down? nil)
 (defvar shift-down? nil)
 
+(defvar *shaders* nil)
+(defvar *cmds* nil)
+
 (defparameter *fps* 0)
 (defparameter *fps-reset* (sdl2:get-ticks))
 
-
+(defclass shader-program ()
+  ((frag :initarg :fragment-shader
+	 :accessor fragment-shader)
+   (vert :initarg :vertex-shader
+	 :accessor vertex-shader)
+   (program :initarg :program
+	    :accessor program)))
 
 (defparameter *vertex-shader-source*
 "#version 330 core
 layout (location = 0) in vec3 position;
+
+uniform mat4 transform;
+
 void main()
 {
-gl_Position = vec4(position.x, position.y, position.z, 1.0);
+gl_Position =  vec4(position.x, position.y, position.z, 1.0);
 }")
 
 (defparameter *fragment-shader-source*
@@ -27,10 +39,35 @@ gl_Position = vec4(position.x, position.y, position.z, 1.0);
 out vec4 color;
 void main()
 {
-color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }")
 
 
+;; (regen-shaders)
+(defun regen-shaders ()
+  (push (lambda ()
+	  (format t "Called regen~%")
+	  (dolist (program *shaders*)
+	    (with-slots (frag vert program) program
+	      (gl:detach-shader program frag)
+	      (gl:detach-shader program vert)
+
+	      (gl:delete-shader frag)
+	      (gl:delete-shader vert)
+
+	      (let ((new-vert-shader (generate-vertex-shader))
+		    (new-frag-shader (generate-fragment-shader)))
+		(gl:attach-shader program new-vert-shader)
+		(gl:attach-shader program new-frag-shader)
+		(gl:link-program program)
+		(assert-no-program-errors program)
+
+		(setf frag new-frag-shader)
+		(setf vert new-vert-shader)
+
+		(format t "Did new shaders~%")))))
+	*cmds*))
+ 
 (defun assert-no-shader-errors (shader-id)
   (let ((success (cffi:foreign-alloc :int :initial-element 0)))
     (unwind-protect
@@ -49,27 +86,35 @@ color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
              (error "OpenGl error:~%~A" (gl:get-program-info-log program-id))))
       (cffi:foreign-free success))))
 
-
-(defun get-shader ()
-  (let ((vertex-shader (gl:create-shader :vertex-shader))
-        (fragment-shader (gl:create-shader :fragment-shader)))
+(defun generate-vertex-shader ()
+  (let ((vertex-shader (gl:create-shader :vertex-shader)))
     (gl:shader-source vertex-shader *vertex-shader-source*)
     (gl:compile-shader vertex-shader)
     (assert-no-shader-errors vertex-shader)
+    vertex-shader))
 
+(defun generate-fragment-shader ()
+  (let ((fragment-shader (gl:create-shader :fragment-shader)))
     (gl:shader-source fragment-shader *fragment-shader-source*)
     (gl:compile-shader fragment-shader)
     (assert-no-shader-errors fragment-shader)
+    fragment-shader))
+    
+(defun get-shader ()
+  (let ((vertex-shader (generate-vertex-shader))
+        (fragment-shader (generate-fragment-shader))
+	(program (gl:create-program)))
+    (gl:attach-shader program vertex-shader)
+    (gl:attach-shader program fragment-shader)
+    (gl:link-program program)
+    (assert-no-program-errors program)
 
-    (let ((program (gl:create-program)))
-      (gl:attach-shader program vertex-shader)
-      (gl:attach-shader program fragment-shader)
-      (gl:link-program program)
-      (assert-no-program-errors program)
-
-      (gl:delete-shader vertex-shader)
-      (gl:delete-shader fragment-shader)
-      program)))
+    (push (make-instance 'shader-program
+			 :fragment-shader fragment-shader
+			 :vertex-shader vertex-shader
+			 :program program)
+	  *shaders* )
+    program))
 
 (defun make-model ()  
   (let* ((vec #(-0.5 -0.5 0.0
@@ -113,7 +158,12 @@ color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
   (incf *fps*)
   (when (> (- (sdl2:get-ticks) *fps-reset*) 1000)
     (setf *fps* 0)
-    (setf *fps-reset* (sdl2:get-ticks))))
+    (setf *fps-reset* (sdl2:get-ticks)))
+
+  
+  (loop for cmd = (pop *cmds*)
+	while cmd
+	do (funcall cmd)))
 
 
 (defun handle-windowevent ()
