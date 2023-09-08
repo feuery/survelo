@@ -1,0 +1,13 @@
+* Survelo  - Ilpo treenaa 3d lispillä. Tästä saattaa tulla isona joku 3d-mallinnus-juttu
+
+** Usage
+
+** Installation
+
+** Author
+
++ Ilpo Lehtinen <feuer>
+
+** Copyright
+
+Copyright (c) 2023 Ilpo Lehtinen <feuer>
