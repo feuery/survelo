@@ -2,7 +2,7 @@
   :version "0.1.0"
   :author "Ilpo Lehtinen <feuer>"
   :license ""
-  :depends-on ("sdl2" "sdl2-image" "cl-opengl")
+  :depends-on ("sdl2" "sdl2-image" "cl-opengl" "mathkit" "bordeaux-threads")
   :components ((:module "src"
                 :components
                 ((:file "main"))))

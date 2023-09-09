@@ -39,11 +39,25 @@ gl_Position =  vec4(position.x, position.y, position.z, 1.0);
 out vec4 color;
 void main()
 {
-color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+color = vec4(0.6f, 0.0f, 0.0f, 1.0f);
 }")
 
+;; https://github.com/TeMPOraL/pure-cl-gamedev-libs
 
-;; (regen-shaders)
+;; https://learnopengl.com/Getting-started/Coordinate-Systems
+
+;; model matriz:
+;; applies position, angle and scale
+
+;; view matrix:
+;; applies camera
+
+;; projection matrix
+;; tiputtaa koordinaatit alueelle -1 .. 1
+
+;;
+
+;; (regen-shaders )
 (defun regen-shaders ()
   (push (lambda ()
 	  (format t "Called regen~%")
@@ -208,31 +222,31 @@ color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
     (:quit () t)))
 
 (defun main ()
-  
-  (sdl2:with-init (:everything)
-    (format t "Using SDL Library Version: ~D.~D.~D~%"
-            sdl2-ffi:+sdl-major-version+
-            sdl2-ffi:+sdl-minor-version+
-            sdl2-ffi:+sdl-patchlevel+)
-    
-    (sdl2:gl-set-attr :context-major-version 3)
-    (sdl2:gl-set-attr :context-minor-version 3)
-    (sdl2:gl-set-attr :context-profile-mask
-                      sdl2-ffi:+sdl-gl-context-profile-core+)
-    (sdl2:gl-set-attr :doublebuffer 1)
-    #+darwin
-    (sdl2:gl-set-attr :context-forward-compatible-flag
-                      sdl2-ffi:+sdl-gl-context-forward-compatible-flag+)
-    (sdl2:with-window (win :w 800 :h 600 :title "qmapper without the q" :flags '(:shown :resizable :opengl))
-      (gl:viewport 0 0 800 600)
-      
-      (let* ((renderer (sdl2:create-renderer win))
-	     (shader (get-shader))
-	     (vao (make-model)))
-	(setf *renderer* renderer)
-	(setf *window* win)
-	
-	(event-loop  win shader vao)))))
+  (bordeaux-threads:make-thread (lambda ()
+				  (sdl2:with-init (:everything)
+				    (format t "Using SDL Library Version: ~D.~D.~D~%"
+					    sdl2-ffi:+sdl-major-version+
+					    sdl2-ffi:+sdl-minor-version+
+					    sdl2-ffi:+sdl-patchlevel+)
+				    
+				    (sdl2:gl-set-attr :context-major-version 3)
+				    (sdl2:gl-set-attr :context-minor-version 3)
+				    (sdl2:gl-set-attr :context-profile-mask
+						      sdl2-ffi:+sdl-gl-context-profile-core+)
+				    (sdl2:gl-set-attr :doublebuffer 1)
+				    #+darwin
+				    (sdl2:gl-set-attr :context-forward-compatible-flag
+						      sdl2-ffi:+sdl-gl-context-forward-compatible-flag+)
+				    (sdl2:with-window (win :w 800 :h 600 :title "qmapper without the q" :flags '(:shown :resizable :opengl))
+				      (gl:viewport 0 0 800 600)
+				      
+				      (let* ((renderer (sdl2:create-renderer win))
+					     (shader (get-shader))
+					     (vao (make-model)))
+					(setf *renderer* renderer)
+					(setf *window* win)
+					
+					(event-loop  win shader vao)))))))
 
 
 ;;(main)
